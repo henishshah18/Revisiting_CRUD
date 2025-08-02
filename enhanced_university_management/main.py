@@ -6,8 +6,7 @@
 from fastapi import FastAPI, Query, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import (BaseModel, EmailStr, Field, conint, confloat,
-                      validator)
+from pydantic import (BaseModel, EmailStr, Field, field_validator)
 from typing import Any, Dict, List, Optional
 from datetime import date, datetime, timezone
 import re
@@ -98,7 +97,8 @@ class ProfessorBase(BaseModel):
 
 class ProfessorCreate(ProfessorBase):
     hire_date: date = Field(..., example=date(1959, 1, 1))
-    @validator('hire_date')
+
+    @field_validator('hire_date')
     def hire_date_not_in_future(cls, v):
         if v > date.today():
             raise ValueError("Hire date cannot be in the future.")
@@ -117,12 +117,13 @@ class Professor(ProfessorBase):
 class CourseBase(BaseModel):
     name: str = Field(..., example="Compiler Construction")
     code: str = Field(..., example="CS432")
-    credits: conint(ge=1, le=6) = Field(..., example=3)
-    max_capacity: conint(ge=1) = Field(..., example=30)
-    @validator('code')
+    credits: int = Field(..., ge=1, le=6, example=3)
+    max_capacity: int = Field(..., ge=1, example=30)
+
+    @field_validator('code')
     def validate_course_code(cls, v):
         if not re.match(r'^[A-Z]{2,4}\d{3}$', v):
-            raise ValueError('Invalid course code format. Use format like "CS101".')
+            raise ValueError('Invalid course code format. Use format like "CS101" or "MATH203".')
         return v.upper()
 
 class CourseCreate(CourseBase):
@@ -131,8 +132,8 @@ class CourseCreate(CourseBase):
 class CourseUpdate(BaseModel):
     name: Optional[str] = Field(None, example="Advanced Compiler Construction")
     code: Optional[str] = Field(None, example="CS532")
-    credits: Optional[conint(ge=1, le=6)] = Field(None, example=4)
-    max_capacity: Optional[conint(ge=1)] = Field(None, example=35)
+    credits: Optional[int] = Field(None, ge=1, le=6, example=4)
+    max_capacity: Optional[int] = Field(None, ge=1, example=35)
     professor_id: Optional[int] = Field(None, example=1)
 
 class Course(CourseBase):
@@ -145,7 +146,7 @@ class StudentBase(BaseModel):
     name: str = Field(..., example="John von Neumann")
     email: EmailStr = Field(..., example="john.vonneumann@ias.edu")
     major: str = Field(..., example="Chemical Engineering")
-    year: conint(ge=1, le=5) = Field(..., example=4)
+    year: int = Field(..., ge=1, le=5, example=4)
 
 class StudentCreate(StudentBase):
     pass
@@ -154,11 +155,11 @@ class StudentUpdate(BaseModel):
     name: Optional[str] = Field(None)
     email: Optional[EmailStr] = Field(None)
     major: Optional[str] = Field(None)
-    year: Optional[conint(ge=1, le=5)] = Field(None)
+    year: Optional[int] = Field(None, ge=1, le=5)
 
 class Student(StudentBase):
     id: int
-    gpa: confloat(ge=0.0, le=4.0) = Field(default=0.0)
+    gpa: float = Field(default=0.0, ge=0.0, le=4.0)
     academic_probation: bool = Field(default=False, description="True if GPA is below 2.0")
 
 # Enrollment Schemas
